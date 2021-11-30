@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+export PYBUILD_NAME=webob
+#export PYBUILD_VERBOSE=1
+#export DH_VERBOSE=1
+
+%:
+	dh $@ --with python3,sphinxdoc --buildsystem=pybuild
+
+override_dh_auto_test:
+	# enable network, tests.test_in_wsgiref.test_request_reading needs it
+	set -e ; for vers in `py3versions -vr` ; do \
+		http_proxy='' PYTHONPATH=.:$(CURDIR)/src python$$vers -m pytest tests ; \
+	done
+
+override_dh_installchangelogs:
+	dh_installchangelogs -k CHANGES.txt
+
+override_dh_sphinxdoc:
+ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
+	PYTHONPATH=.:$(CURDIR)/src python3 -m sphinx -N -q -E -b html docs/ \
+		     debian/python-webob-doc/usr/share/doc/python-webob-doc/
+	dh_sphinxdoc
+endif
